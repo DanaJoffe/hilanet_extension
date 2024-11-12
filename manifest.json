@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Hilanet Hours Calc",
+  "version": "1.0",
+  "description": "Calculate working hours from Hilanet Page",
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": ["https://matrix.net.hilan.co.il/Hilannetv2/Attendance/calendarpage.aspx?itemId=47"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["scripts/injected.js"],
+      "matches": ["https://matrix.net.hilan.co.il/*"]
+    }
+  ],
+  "background": {
+     "service_worker": "scripts/background.js"
+  },
+  "permissions": ["activeTab", "scripting"],
+  "action": {}
+}
