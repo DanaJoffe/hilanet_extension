@@ -21,19 +21,14 @@ Array.from(row.cells).map(cell => cell.innerText)
 
 
 // LOAD PYODIDE
-//const script = document.createElement("script");
-//script.src = "https://cdn.jsdelivr.net/pyodide/v0.18.1/full/pyodide.js";
-//document.head.appendChild(script);
-
 const pyodide_index_url = "https://cdn.jsdelivr.net/pyodide/v0.24.0/full/"
-
 const script = document.createElement("script");
 script.src = pyodide_index_url + "pyodide.js"; // Adjust version as needed
 script.type = "text/javascript";
 document.head.appendChild(script);
 
 
-// injected.js
+// async injected.js
 async function loadAndUsePythonModule() {
 	// Wait for the script to load
 	await new Promise((resolve) => {
@@ -56,8 +51,12 @@ async function loadAndUsePythonModule() {
             
 			console.log("injected.js: utilsContent!");
 			
-			// Load Pyodide
-            //const pyodide = await loadPyodide({indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.0/full/"});
+			// prep params
+			// Pass JavaScript variables to Python
+			const jsonData = JSON.stringify(tableData, null, 2);
+			//const param1 = "Parameter 1";
+			pyodide.globals.set("js_jsonData", jsonData);
+			
 			await pyodide.loadPackage("pandas");
 			console.log("Pyodide and Pandas are loaded and ready to use!");
 
@@ -65,54 +64,26 @@ async function loadAndUsePythonModule() {
             await pyodide.runPythonAsync(event.data.content);
 
             // Now you can call any function defined in `utils.py`
-            const result = pyodide.runPython("parse()"); // Example function call from `utils.py`
+            const result = pyodide.runPython("parse(js_jsonData)"); // Example function call from `utils.py`
             console.log("Result from Python:", result);
         }
     });
 	
-	
-	//////
+	 
+    
+    
+    
 
-	
+    // Call the Python function
+    //const result = pyodide.runPython(`
+    //    parse(js_param1)
+    //`);
 
-    //const result = pyodide.runPython("parse()");  // Replace with the actual function call
-    //console.log(result);
 }
-
 
 loadAndUsePythonModule();
 
-//(async () => {
-	// Wait for the script to load
-    //await new Promise((resolve) => {
-    //    script.onload = resolve;
-    //});
-	//console.log("Script loaded successfully!");
-	
-	
-	/////////////////////////////////////////////////////////////////////////////////////
 
-
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	
-	
-	
-	// Load Pyodide with the indexURL parameter
-	//const pyodide = await loadPyodide({indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.1/full/"});
-	//console.log("pyodide loaded successfully!");
-	
-	// Load the pandas package
-	//await pyodide.loadPackage("pandas");
-	//console.log("Pyodide and Pandas are loaded and ready to use!");
-	
-	// Fetch and load the contents of utils.py
-    //const response = await fetch("scripts/utils.py");
-    //const utilsCode = await response.text();
-    
-	// Run the code in Pyodide, which makes `parse` accessible in the Python environment
-    //await pyodide.runPythonAsync(utilsCode);
-	
 	// run python
 	// Now you can use `parse` directly
     //const result = pyodide.runPython("parse()");  // Adjust as needed
