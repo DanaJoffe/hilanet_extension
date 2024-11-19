@@ -13,6 +13,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 
+// Listen for requests from `injected.js` to fetch `utils.py`
+window.addEventListener("message", (event) => {
+    if (event.data.action === "fetchUtils") {
+        chrome.runtime.sendMessage({ action: "fetchUtils" }, (response) => {
+            // Send `utils.py` content back to `injected.js` through DOM messaging
+            window.postMessage({ action: "utilsContent", content: response.content }, "*");
+        });
+    }
+});
+
+
+
 // content.js
 function injectScript(file) {
     const script = document.createElement('script');
@@ -26,10 +38,12 @@ function injectScript(file) {
 
 function main() {
     console.log("content.js: main is executed!");
+
     // Add your content script logic here
     // Call the function to inject 'injected.js' into the web page
     injectScript('scripts/injected.js');
 }
+
 
 
 

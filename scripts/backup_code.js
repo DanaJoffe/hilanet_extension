@@ -92,3 +92,31 @@ function myFunctionToRun() {
     console.log("Script activated by icon click!");
     // Add any additional code you want to run here
 }
+
+// background.js
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "fetchUtils") {
+        fetch(chrome.runtime.getURL("scripts/utils.py"))
+            .then(response => response.text())
+            .then(data => {
+                sendResponse({ content: data });
+            })
+            .catch(error => {
+                console.error("Failed to fetch utils.py:", error);
+                sendResponse({ error: "Failed to fetch utils.py" });
+            });
+        return true; // Keeps the message channel open for asynchronous response
+    }
+});
+
+	// Request the content of utils.py from background.js
+    const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "fetchUtils" }, (response) => {
+            if (chrome.runtime.lastError || response.error) {
+                reject("Error fetching utils.py");
+            } else {
+                resolve(response.content);
+            }
+        });
+    });
+	
