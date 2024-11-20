@@ -14,10 +14,34 @@ const table1 = divElement.querySelector('table'); // Find the first table within
 const tableId = table1.id+'_innerBody'; // Get the ID of the table
 console.log("Table ID:", tableId); // Log the table ID
 //const table = document.getElementById('ctl00_mp_RG_Days_394219301_2024_10_reportsGrid_innerBody');
-const table = document.getElementById(tableId);
-const tableData = Array.from(table.rows).map(row => 
-Array.from(row.cells).map(cell => cell.innerText)
-);
+
+
+
+function parseNestedTableToListOfLists(tableElement) {
+    const data = [];
+    const rows = tableElement.rows; // Get all rows of the table
+
+    for (const row of rows) {
+        const rowData = [];
+        const cells = row.cells; // Get all cells in the row
+
+        for (const cell of cells) {
+            // Check if the cell contains a nested table
+            const nestedTable = cell.querySelector("table");
+            if (nestedTable) {
+                // Recursively parse the nested table
+                rowData.push(parseNestedTableToListOfLists(nestedTable));
+            } else {
+                rowData.push(cell.innerText.trim()); // Extract cell content
+            }
+        }
+
+        data.push(rowData); // Add the row data to the main list
+    }
+
+    return data;
+}
+
 
 
 // LOAD PYODIDE
@@ -26,6 +50,27 @@ const script = document.createElement("script");
 script.src = pyodide_index_url + "pyodide.js"; // Adjust version as needed
 script.type = "text/javascript";
 document.head.appendChild(script);
+
+
+
+function download_json(param) {
+	// Convert to JSON
+	const jsonData = JSON.stringify(param, null, 4); // Pretty print with 2-space indentation
+	// Create a Blob from the JSON string
+	const blob = new Blob([jsonData], { type: 'application/json' });
+
+	// Create a link to download the Blob
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = 'tableData.json'; // Set the filename for download
+	document.body.appendChild(a); // Append link to the body
+	a.click(); // Programmatically click the link to trigger the download
+	document.body.removeChild(a); // Remove the link from the document
+	URL.revokeObjectURL(url); // Clean up the URL object
+}
+
+//download_json(tableData)
 
 
 // async injected.js
@@ -51,9 +96,18 @@ async function loadAndUsePythonModule() {
             
 			console.log("injected.js: utilsContent!");
 			
+			// parse table
+			const table = document.getElementById(tableId);
+			const parsedData = parseNestedTableToListOfLists(table);
+			const tableData = Array.from(table.rows).map(row => 
+			Array.from(row.cells).map(cell => cell.innerText)
+			);
+			console.log("table.rows.length:", table.rows.length);
+			
 			// prep params
 			// Pass JavaScript variables to Python
-			const jsonData = JSON.stringify(tableData, null, 2);
+			//const jsonData = JSON.stringify(tableData, null, 2);
+			const jsonData = JSON.stringify(parsedData);
 			//const param1 = "Parameter 1";
 			pyodide.globals.set("js_jsonData", jsonData);
 			
