@@ -1,5 +1,6 @@
 import json
 import unicodedata
+import pandas as pd
 
 
 def total_seconds2hours_and_minutes(total_seconds):
@@ -21,27 +22,36 @@ def parse_special_day_row(row):  # TODO: delete
     return row[1][0][1]
 
 
-def parse_work_data(work_table):
+def parse_report(report_list):
+    assert len(report_list) in {1, 2}
+    if len(report_list) == 1:
+        return report_list[0]
+    return report_list[1]
+    
+
+def parse_work_data(work_table, **kwargs):
     TEKEN=10
     HOURS=8
+    REPORT=5
 
     work_stat = []
 
     for row in work_table:
         assert len(row) == 13
         work_stat.append({
+            **kwargs,
             **dict(
                 teken=0 if row[TEKEN] == '' else row[TEKEN],
                 hours=0 if row[HOURS] == '' else row[HOURS],
-                # _5=row[5],
+                len_report=len(row[REPORT].split('\n')),
+                report=parse_report(row[REPORT].split('\n')),
                 ),
-                **{f"_{i}": row[i]
-                    for i in [0,1,2,3,4,5,6,7,9,11,12]}
+                # **{f"_{i}": row[i] for i in [0,1,2,3,4,6,7,9,11,12]},
                 })
     return work_stat
 
 
-def parse_holiday(day_table):
+def parse_holiday(day_table, **kwargs):
     """
     assume: len(day_table) == 2
     add field 'notes'
@@ -54,8 +64,9 @@ def parse_holiday(day_table):
     # second row - attendance
     work_row = day_table[1]
     assert len(work_row) == 3
-    work_stat = parse_work_data(work_row[1])
-    return [{**d, 'notes': holiday} for d in work_stat]
+    work_stat = parse_work_data(work_row[1], notes=holiday, **kwargs)
+    return work_stat
+    # return [{**d, 'notes': holiday} for d in work_stat]
 
 
 def parse_one_day_old(day_table):
@@ -83,26 +94,16 @@ def parse_one_day_old(day_table):
 
 
 def parse_one_day(day_table):
-    days_stat = []
     date = unicodedata.normalize("NFKD", day_table[0][0])
     nrows = len(day_table)
     assert nrows in {1,2}
     
     if nrows == 2:
-        work_stat = parse_holiday(day_table)
-        days_stat += [{**d, 'date': date, 'nrows': nrows} for d in work_stat]
-    
+        work_stat = parse_holiday(day_table, date=date, nrows=nrows)
     else:
-        for i, row in enumerate(day_table):
-            days_stat.append(dict(
-                date=date,
-                nrows=nrows,
-                row_i=i,
-                row_i_len=len(row),
-                row_i_val=row,
-                row_i_val_len=len(row)
-            ))
-    return days_stat
+        work_row = day_table[0]
+        work_stat = parse_work_data(work_row[2], date=date, nrows=nrows)
+    return work_stat
 
 
 def parse_data(data):
@@ -111,7 +112,8 @@ def parse_data(data):
     for i, j in zip(idays[:-1], idays[1:]):
         day_table = data[i: j]
         days_stat += parse_one_day(day_table)
-
+    df = pd.DataFrame(days_stat)
+    return df
 
 def parse(json_str):
     print(f"parse python: param {type(json_str)}")
