@@ -152,11 +152,13 @@ def parse_df_date(df):
 
 
 def parse_df_times(df):
+    ZERO = timedelta(hours=0, minutes=0)
+
     # teken: str => float
-    df.teken = df.teken.apply(lambda str_t:  timedelta(hours=int(str_t.split('.')[0]), minutes=int(str_t.split('.')[1]) *60/100) if str_t!=0 else timedelta(hours=0, minutes=0))
+    df.teken = df.teken.apply(lambda str_t:  timedelta(hours=int(str_t.split('.')[0]), minutes=int(str_t.split('.')[1]) *60/100) if str_t!=0 else ZERO)
     
     # str hours => datetime.timedelta
-    df.hours = df.hours.apply(lambda str_t:  timedelta(hours=int(str_t.split(':')[0]), minutes=int(str_t.split(':')[1])) if str_t!=0 else timedelta(hours=0, minutes=0))
+    df.hours = df.hours.apply(lambda str_t:  timedelta(hours=int(str_t.split(':')[0]), minutes=int(str_t.split(':')[1])) if str_t!=0 else ZERO)
     
     # one row per date
     def sum_day_hours(subdf):
@@ -171,9 +173,14 @@ def parse_df_times(df):
 
 
 
-def get_last_working_day_ind(df):
-    a = [i for i in reversed((df.hours_parsed != 0).astype(int))]
+def cut_df_at_last_working_day(df):
+    ZERO = timedelta(hours=0, minutes=0)
+
+    a = [i for i in reversed((df.hours != ZERO).astype(int))]
     i = -np.argmax(a)
+    if i == 0:
+        return df
+    return df[:i]
 
 
 def add_df_columns(df):
@@ -191,19 +198,24 @@ def parse_data(data):
     return df
 
 
-def sum_tiedelta(df_column):
-    hours, remainder = divmod(df_column.sum().total_seconds(), 3600)
+def timedelta_2_hm(td):
+    hours, remainder = divmod(td.total_seconds(), 3600)
     minutes = remainder // 60
     return int(hours), int(minutes)
 
 
 def agg_results(df) -> dict:
-    # df['hours_parsed'] = df.hours.apply(lambda time_str: parse_time(time_str) if time_str != 0 else time_str)
-    
+    hours = df.hours.sum()
+    teken = df.teken.sum()
+    vacation = df[df.report == 'חופשה'].teken.sum()
+    overtime = hours + vacation - teken
+
     ret = {
-        'total_hours': "{}:{:02}".format(*sum_tiedelta(df.hours)),
-        'total_vacation': "{}:{:02}".format(*sum_tiedelta(df[df.report == 'חופשה'].teken)),       
-        'total_teken': "{}:{:02}".format(*sum_tiedelta(df.teken)),
+        'total_hours': "{}:{:02}".format(*timedelta_2_hm(hours)),
+        'total_vacation': "{}:{:02}".format(*timedelta_2_hm(vacation)),       
+        'total_teken': "{}:{:02}".format(*timedelta_2_hm(teken)),
+        'overtime': "{}:{:02}".format(*timedelta_2_hm(overtime)),
+        'up_to_date': df.date.iloc[-1],
     }
     return ret
 
@@ -213,5 +225,6 @@ def parse(json_str):
 
     data = json.loads(json_str)
     df = parse_data(data)
+    df = cut_df_at_last_working_day(df)
     results = agg_results(df)
     return str(results)

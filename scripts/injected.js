@@ -2,19 +2,38 @@
 
 
 // Create the data
-const t1 = document.getElementById('calendar_container')
+t1 = document.getElementById('calendar_container')
 __doMonthClick(t1);
-const button = document.getElementById('ctl00_mp_RefreshSelectedDays');
+button = document.getElementById('ctl00_mp_RefreshSelectedDays');
 button.click()
 
 
 // Extract table data
-const divElement = document.getElementById('MainDiv');
-const table1 = divElement.querySelector('table'); // Find the first table within the div
-const tableId = table1.id+'_innerBody'; // Get the ID of the table
+divElement = document.getElementById('MainDiv');
+table1 = divElement.querySelector('table'); // Find the first table within the div
+tableId = table1.id+'_innerBody'; // Get the ID of the table
 console.log("Table ID:", tableId); // Log the table ID
 //const table = document.getElementById('ctl00_mp_RG_Days_394219301_2024_10_reportsGrid_innerBody');
 
+
+pyodide_index_url = "https://cdn.jsdelivr.net/pyodide/v0.24.0/full/"
+script = document.createElement("script");
+script.src = pyodide_index_url + "pyodide.js"; // Adjust version as needed
+script.type = "text/javascript";
+document.head.appendChild(script);
+
+
+// Define a global flag
+if (!window.__scriptInjected) {
+    window.__scriptInjected = true; // Mark the script as injected
+
+    // Your code that should run only once
+    console.log("__scriptInjected: Injected script is running");
+
+    // Add your logic here
+	// LOAD PYODIDE
+
+}
 
 
 function parseNestedTableToListOfLists(tableElement) {
@@ -44,12 +63,7 @@ function parseNestedTableToListOfLists(tableElement) {
 
 
 
-// LOAD PYODIDE
-const pyodide_index_url = "https://cdn.jsdelivr.net/pyodide/v0.24.0/full/"
-const script = document.createElement("script");
-script.src = pyodide_index_url + "pyodide.js"; // Adjust version as needed
-script.type = "text/javascript";
-document.head.appendChild(script);
+
 
 
 
