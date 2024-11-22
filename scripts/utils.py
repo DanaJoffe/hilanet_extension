@@ -1,6 +1,10 @@
 import json
 import unicodedata
 import pandas as pd
+import numpy as np
+import re
+from datetime import timedelta
+
 
 
 def total_seconds2hours_and_minutes(total_seconds):
@@ -100,14 +104,15 @@ def parse_one_day(day_table):
     
     if nrows == 2:
         work_stat = parse_holiday(day_table, date=date, nrows=nrows)
-    else:
+    else:  # nrows == 1
         work_row = day_table[0]
         work_stat = parse_work_data(work_row[2], date=date, nrows=nrows)
     return work_stat
 
 
-def parse_data(data):
+def parse_raw_data(data):
     idays = get_idays(data)
+    idays.append(len(data))
     days_stat = []
     for i, j in zip(idays[:-1], idays[1:]):
         day_table = data[i: j]
@@ -115,10 +120,98 @@ def parse_data(data):
     df = pd.DataFrame(days_stat)
     return df
 
+
+def parse_time(time_str):
+    h, m = time_str.split(':')
+    return int(h) + int(m) / 60
+
+
+def time_float2str(float_time):
+    """ 
+    float_time of the format hh.mp where mp is minutes percentage
+    return hh:mm
+    """
+    h = int(float_time)
+    return f"{h}:{int((float_time-h)*60)}"
+
+
+def parse_df_date(df):
+    pattern = "(\d+)\/(\d+) (.*)"
+    prog = re.compile(pattern)
+
+    for i, str_date in enumerate(df.date):
+        result = prog.match(str_date)
+        day = result.group(1)
+        month = result.group(2)
+        weekday = result.group(3)
+
+        df.at[i, 'day'] = int(day)
+        df.at[i, 'month'] = int(month)
+        df.at[i, 'weekday'] = weekday
+    return df
+
+
+def parse_df_times(df):
+    # teken: str => float
+    df.teken = df.teken.apply(lambda str_t:  timedelta(hours=int(str_t.split('.')[0]), minutes=int(str_t.split('.')[1]) *60/100) if str_t!=0 else timedelta(hours=0, minutes=0))
+    
+    # str hours => datetime.timedelta
+    df.hours = df.hours.apply(lambda str_t:  timedelta(hours=int(str_t.split(':')[0]), minutes=int(str_t.split(':')[1])) if str_t!=0 else timedelta(hours=0, minutes=0))
+    
+    # one row per date
+    def sum_day_hours(subdf):
+        s = subdf.iloc[0:1].copy()
+        s.hours = subdf.hours.sum()
+        return s
+    df = df.groupby('date').apply(sum_day_hours).reset_index(drop=True)
+    
+    # # phours = the hours that count
+    # df['phours'] = df.apply(lambda r: r.teken if r.report == 'חופשה' else r.hours, axis=1)
+    return df
+
+
+
+def get_last_working_day_ind(df):
+    a = [i for i in reversed((df.hours_parsed != 0).astype(int))]
+    i = -np.argmax(a)
+
+
+def add_df_columns(df):
+    """
+    parse raw df data and add customized columns for further insights
+    """
+    df = parse_df_date(df)
+    df = parse_df_times(df)
+    return df
+
+
+def parse_data(data):
+    df = parse_raw_data(data)
+    df = add_df_columns(df)
+    return df
+
+
+def sum_tiedelta(df_column):
+    hours, remainder = divmod(df_column.sum().total_seconds(), 3600)
+    minutes = remainder // 60
+    return int(hours), int(minutes)
+
+
+def agg_results(df) -> dict:
+    # df['hours_parsed'] = df.hours.apply(lambda time_str: parse_time(time_str) if time_str != 0 else time_str)
+    
+    ret = {
+        'total_hours': "{}:{:02}".format(*sum_tiedelta(df.hours)),
+        'total_vacation': "{}:{:02}".format(*sum_tiedelta(df[df.report == 'חופשה'].teken)),       
+        'total_teken': "{}:{:02}".format(*sum_tiedelta(df.teken)),
+    }
+    return ret
+
+
 def parse(json_str):
     print(f"parse python: param {type(json_str)}")
 
     data = json.loads(json_str)
-    parse_data(data)
-
-    return data[0][0]
+    df = parse_data(data)
+    results = agg_results(df)
+    return str(results)
