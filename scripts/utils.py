@@ -165,7 +165,7 @@ def parse_df_times(df):
         s = subdf.iloc[0:1].copy()
         s.hours = subdf.hours.sum()
         return s
-    df = df.groupby('date').apply(sum_day_hours).reset_index(drop=True)
+    df = df.groupby('date', group_keys=False).apply(sum_day_hours).reset_index(drop=True)
     
     # # phours = the hours that count
     # df['phours'] = df.apply(lambda r: r.teken if r.report == 'חופשה' else r.hours, axis=1)
@@ -211,11 +211,11 @@ def agg_results(df) -> dict:
     overtime = hours + vacation - teken
 
     ret = {
-        'total_hours': "{}:{:02}".format(*timedelta_2_hm(hours)),
-        'total_vacation': "{}:{:02}".format(*timedelta_2_hm(vacation)),       
-        'total_teken': "{}:{:02}".format(*timedelta_2_hm(teken)),
-        'overtime': "{}:{:02}".format(*timedelta_2_hm(overtime)),
-        'up_to_date': df.date.iloc[-1],
+        "total_hours": "{}:{:02}".format(*timedelta_2_hm(hours)),
+        "total_vacation": "{}:{:02}".format(*timedelta_2_hm(vacation)),       
+        "total_teken": "{}:{:02}".format(*timedelta_2_hm(teken)),
+        "overtime": "{}:{:02}".format(*timedelta_2_hm(overtime)),
+        "up_to_date": f"{int(df.iloc[-1].day)}/{int(df.iloc[-1].month)}",
     }
     return ret
 
@@ -227,4 +227,4 @@ def parse(json_str):
     df = parse_data(data)
     df = cut_df_at_last_working_day(df)
     results = agg_results(df)
-    return str(results)
+    return json.dumps(results)

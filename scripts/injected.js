@@ -1,5 +1,7 @@
 // runs in the html web page
 
+// ctl00_mp_calendarUpdator
+
 
 // Create the data
 t1 = document.getElementById('calendar_container')
@@ -63,10 +65,6 @@ function parseNestedTableToListOfLists(tableElement) {
 
 
 
-
-
-
-
 function download_json(param) {
 	// Convert to JSON
 	const jsonData = JSON.stringify(param, null, 4); // Pretty print with 2-space indentation
@@ -86,6 +84,49 @@ function download_json(param) {
 
 //download_json(tableData)
 
+
+function show(jsonString) {
+	const dictionary = JSON.parse(jsonString);
+	
+	///////////////////
+	// Create a list
+	const list = document.createElement("ul");
+	Object.entries(dictionary).forEach(([key, value]) => {
+		const listItem = document.createElement("li");
+		listItem.textContent = `${key}: ${value}`;
+		list.appendChild(listItem);
+	});
+	// Add list to the DOM
+	document.body.appendChild(list);
+	///////////////////
+	
+	
+		// Add a result container to the page
+	const outputElement = document.createElement('span'); //span div
+	outputElement.id = 'script-output';
+	outputElement.style.position = 'fixed';
+	outputElement.style.bottom = '20px';
+	outputElement.style.right = '20px';
+	outputElement.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+	outputElement.style.color = 'white';
+	outputElement.style.padding = '10px';
+	outputElement.style.borderRadius = '5px';
+	outputElement.style.zIndex = '10000';
+	outputElement.textContent = jsonString;
+	document.body.appendChild(outputElement);
+
+	
+	const existingElement = document.getElementById('ctl00_mp_LastUpdateLegendText');
+	if (existingElement) {
+		//existingElement.textContent = jsonString;
+		existingElement.appendChild(list);
+
+		//existingElement.textContent.appendChild(list);
+	} else {
+		console.warn('Target element not found!');
+	}
+
+}
 
 // async injected.js
 async function loadAndUsePythonModule() {
@@ -134,37 +175,14 @@ async function loadAndUsePythonModule() {
             // Now you can call any function defined in `utils.py`
             const result = pyodide.runPython("parse(js_jsonData)"); // Example function call from `utils.py`
             console.log("Result from Python:", result);
+			show(result);
         }
     });
-	
-	 
-    
-    
-    
 
-    // Call the Python function
-    //const result = pyodide.runPython(`
-    //    parse(js_param1)
-    //`);
 
 }
 
 loadAndUsePythonModule();
+__doMonthClick(t1);
 
-
-	// run python
-	// Now you can use `parse` directly
-    //const result = pyodide.runPython("parse()");  // Adjust as needed
-	//console.log("Result from Python:", result);
-	
-	//const result = pyodide.runPython(`
-	//	import pandas as pd
-	//	#data = ${JSON.stringify(tableData)}
-	//	#df = pd.DataFrame(data[1:], columns=data[0])
-	//	#df.describe().to_json()
-	//	"dana"
-	//`);
-	
-	//console.log('Analysis result:', result);
-//})();
 
