@@ -5,6 +5,7 @@ import numpy as np
 import re
 from datetime import timedelta
 
+ZERO = timedelta(hours=0, minutes=0)
 
 
 def total_seconds2hours_and_minutes(total_seconds):
@@ -27,10 +28,11 @@ def parse_special_day_row(row):  # TODO: delete
 
 
 def parse_report(report_list):
-    assert len(report_list) in {1, 2}
-    if len(report_list) == 1:
-        return report_list[0]
-    return report_list[1]
+    return report_list[-1]
+    # assert len(report_list) in {1, 2}
+    # if len(report_list) == 1:
+    #     return report_list[0]
+    # return report_list[1]
     
 
 def parse_work_data(work_table, **kwargs):
@@ -152,8 +154,6 @@ def parse_df_date(df):
 
 
 def parse_df_times(df):
-    ZERO = timedelta(hours=0, minutes=0)
-
     # teken: str => float
     df.teken = df.teken.apply(lambda str_t:  timedelta(hours=int(str_t.split('.')[0]), minutes=int(str_t.split('.')[1]) *60/100) if str_t!=0 else ZERO)
     
@@ -172,11 +172,9 @@ def parse_df_times(df):
     return df
 
 
-
 def cut_df_at_last_working_day(df):
-    ZERO = timedelta(hours=0, minutes=0)
-
-    a = [i for i in reversed((df.hours != ZERO).astype(int))]
+    active_days = (df.hours != ZERO) | (df.report == 'חופשה') | (df.report == 'יום בחירה') | (df.report == 'מחלת עובד') | (df.weekday == 'שבת') | (df.weekday == 'יום ו')
+    a = [i for i in reversed(active_days.astype(int))]
     i = -np.argmax(a)
     if i == 0:
         return df
@@ -204,18 +202,40 @@ def timedelta_2_hm(td):
     return int(hours), int(minutes)
 
 
-def agg_results(df) -> dict:
-    hours = df.hours.sum()
-    teken = df.teken.sum()
-    vacation = df[df.report == 'חופשה'].teken.sum()
-    overtime = hours + vacation - teken
+def calc_sick_hours(df):
+    sick_rows = df[df.report == 'מחלת עובד']
+    if len(sick_rows) == 0:
+        return ZERO, ZERO
+    sick_vacation = sick_rows.iloc[0].teken
+    sick = sick_rows.iloc[1:].teken.sum()
+    return sick_vacation, sick
 
+
+def agg_results(df) -> dict:
+    def pretty_print(t):
+        return "{}:{:02}".format(*timedelta_2_hm(t))
+
+    # hours that I was... at work / sick / in holiday
+    hours = df.hours.sum()
+    sick_vacation, sick = calc_sick_hours(df)
+    vacation = df[df.report == 'חופשה'].teken.sum() + sick_vacation
+    payed_vacation = df[df.report == 'יום בחירה'].teken.sum()
+    teken = df.teken.sum()
+    overtime = hours + vacation + sick + payed_vacation - teken
+
+    # only timedelta objects
     ret = {
-        "total_hours": "{}:{:02}".format(*timedelta_2_hm(hours)),
-        "total_vacation": "{}:{:02}".format(*timedelta_2_hm(vacation)),       
-        "total_teken": "{}:{:02}".format(*timedelta_2_hm(teken)),
-        "overtime": "{}:{:02}".format(*timedelta_2_hm(overtime)),
-        "up_to_date": f"{int(df.iloc[-1].day)}/{int(df.iloc[-1].month)}",
+        "hours": hours,
+        "vacation": vacation,  
+        "sick": sick,  
+        "payed_vacation": payed_vacation,  
+        "teken": teken,
+        "overtime": overtime,
+    }
+    ret = {k: pretty_print(v) for k, v in ret.items() if v != ZERO}
+    ret = {
+        "up_untill": f"{int(df.iloc[-1].day)}/{int(df.iloc[-1].month)}", # df.iloc[-1].date, #
+        **ret,
     }
     return ret
 
@@ -227,4 +247,4 @@ def parse(json_str):
     df = parse_data(data)
     df = cut_df_at_last_working_day(df)
     results = agg_results(df)
-    return json.dumps(results)
+    return json.dumps(results, ensure_ascii=False)
