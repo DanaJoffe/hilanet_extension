@@ -132,7 +132,7 @@ async function loadAndUsePythonModule() {
 
             // Now you can call any function defined in `utils.py`
             const result = pyodide.runPython("parse(js_jsonData)"); // Example function call from `utils.py`
-            console.log("Result from Python:", result);
+            //console.log("Result from Python:", result);
 			show(result);
         }
     });
