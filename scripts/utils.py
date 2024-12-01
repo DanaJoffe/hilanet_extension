@@ -213,7 +213,8 @@ def calc_sick_hours(df):
 
 def agg_results(df) -> dict:
     def pretty_print(t):
-        return "{}:{:02}".format(*timedelta_2_hm(t))
+        h, m = timedelta_2_hm(t)
+        return "{}:{:02}; {:.2f}".format(h, m, h + m/60)
 
     # hours that I was... at work / sick / in holiday
     hours = df.hours.sum()
@@ -232,6 +233,7 @@ def agg_results(df) -> dict:
         "teken": teken,
         "overtime": overtime,
     }
+    # str presentation
     ret = {k: pretty_print(v) for k, v in ret.items() if v != ZERO}
     ret = {
         "up_untill": f"{int(df.iloc[-1].day)}/{int(df.iloc[-1].month)}", # df.iloc[-1].date, #
