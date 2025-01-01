@@ -3,7 +3,8 @@
 How to add this extension?
 1. clone this repo
 2. navigate to [chrome://extensions](chrome://extensions)
-3. click on "Load unpacked" at the top left, the pick the cloned directory
+3. activate the "Developer mode" option
+4. click on "Load unpacked" at the top left, the pick the cloned directory
 
 How to use this extension?
 1. login to your Hilanet account
