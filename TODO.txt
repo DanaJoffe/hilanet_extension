@@ -1,2 +1,0 @@
-debug august
-add Hebrew support
