@@ -173,7 +173,7 @@ def parse_df_times(df):
 
 
 def cut_df_at_last_working_day(df):  # TODO: write it smarter
-    active_days = (df.hours != ZERO) | (df.report == 'חופשה') | (df.report == 'יום בחירה') | (df.report == 'מחלת עובד') #| (df.weekday == 'שבת') | (df.weekday == 'יום ו')
+    active_days = (df.hours != ZERO) | (df.report == 'חופשה') | (df.report == 'יום בחירה') | (df.report == 'מחלת עובד') | ['נישואין' in r for r in df.report] #| (df.weekday == 'שבת') | (df.weekday == 'יום ו')
     a = [i for i in reversed(active_days.astype(int))]
     i = -np.argmax(a)
     if i == 0:
@@ -220,7 +220,7 @@ def agg_results(df) -> dict:
     hours = df.hours.sum()
     sick_vacation, sick = calc_sick_hours(df)
     vacation = df[df.report == 'חופשה'].teken.sum() + sick_vacation
-    payed_vacation = df[df.report == 'יום בחירה'].teken.sum()
+    payed_vacation = df[(df.report == 'יום בחירה') | ['נישואין' in r for r in df.report]].teken.sum()
     teken = df.teken.sum()
     overtime = hours + vacation + sick + payed_vacation - teken
 
