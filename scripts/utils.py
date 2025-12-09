@@ -196,10 +196,25 @@ def parse_data(data):
     return df
 
 
+def format_timedelta(td):
+    total_seconds = int(td.total_seconds())
+    sign = "-" if total_seconds < 0 else ""
+    total_seconds = abs(total_seconds)
+
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+
+    return f"{sign}{hours:02}:{minutes:02}" #:{seconds:02}"
+
+
 def timedelta_2_hm(td):
-    hours, remainder = divmod(td.total_seconds(), 3600)
+    seconds = td.total_seconds()
+    sign = -1 if seconds < 0 else 1
+    seconds = sign * seconds
+    hours, remainder = divmod(seconds, 3600)
     minutes = remainder // 60
-    return int(hours), int(minutes)
+    return int(sign*hours), int(sign*minutes)
 
 
 def calc_sick_hours(df):
@@ -214,7 +229,7 @@ def calc_sick_hours(df):
 def agg_results(df) -> dict:
     def pretty_print(t):
         h, m = timedelta_2_hm(t)
-        return "{}:{:02}; {:.2f}".format(h, m, h + m/60)
+        return f"{format_timedelta(t)}; " + "{:.2f}".format(h + m/60)
 
     # hours that I was... at work / sick / in holiday
     hours = df.hours.sum()
@@ -231,7 +246,7 @@ def agg_results(df) -> dict:
         "sick": sick,  
         "paid_vacation": payed_vacation,  
         "teken": teken,
-        "overtime": overtime,
+        "shortage" if overtime.total_seconds() < 0 else "overtime": overtime,
     }
     # str presentation
     ret = {k: pretty_print(v) for k, v in ret.items() if v != ZERO}
