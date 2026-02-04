@@ -12,7 +12,7 @@
   "content_scripts": [
     {
       "js": ["scripts/content.js"],
-      "matches": ["https://matrix.net.hilan.co.il/Hilannetv2/Attendance/calendarpage.aspx?itemId=47"]
+      "matches": ["https://matrix.net.hilan.co.il/Hilannetv2/Attendance/calendarpage.aspx?itemId=47", "https://matrix.net.hilan.co.il/Hilannetv2/Attendance/calendarpage.aspx?isOnSelf=true"]
     }
   ],
   "web_accessible_resources": [
